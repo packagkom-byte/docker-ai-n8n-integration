@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - ai-network
+
+  agent:
+    build: ./agent
+    container_name: docker-ai-agent
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://host.docker.internal:5678}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - shared-files:/app/shared
+    ports:
+      - "8000:8000"
+    depends_on:
+      - ollama
+    networks:
+      - ai-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  ollama-data:
+  shared-files:
+
+networks:
+  ai-network:
+    driver: bridge
